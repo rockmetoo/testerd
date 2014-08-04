@@ -1,0 +1,11 @@
+gcc -DHAVE_CONFIG_H -DHAVE_CURL -Wall -g -O2  -c -o oauth.o oauth.c
+gcc -DHAVE_CONFIG_H -DHAVE_CURL -Wall -g -O2  -c -o hash.o hash.c
+gcc -DHAVE_CONFIG_H -DHAVE_CURL -Wall -g -O2  -c -o oauth_http.o oauth_http.c
+gcc -DHAVE_CONFIG_H -DHAVE_CURL -Wall -g -O2  -c -o xmalloc.o xmalloc.c
+gcc -Wall -g -O3 -fPIC -J4 -c -o log.o log.c
+
+ar qcs liboauth.a *.o
+rm -f ../liboauth.a
+cp liboauth.a ../
+
+rm -f *.o

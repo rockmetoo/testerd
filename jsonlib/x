@@ -1,0 +1,26 @@
+gcc -DHAVE_CONFIG_H -I. -I.. -Wall -Wextra -Wdeclaration-after-statement -Werror -O3 -c -o dump.o dump.c
+
+gcc -DHAVE_CONFIG_H -I. -I.. -Wall -Wextra -Wdeclaration-after-statement -Werror -O3 -c -o error.o error.c
+
+gcc -DHAVE_CONFIG_H -I. -I.. -Wall -Wextra -Wdeclaration-after-statement -Werror -O3 -c -o hashtable.o hashtable.c
+
+gcc -DHAVE_CONFIG_H -I. -I.. -Wall -Wextra -Wdeclaration-after-statement -Werror -O3 -c -o load.o load.c
+
+gcc -DHAVE_CONFIG_H -I. -I.. -Wall -Wextra -Wdeclaration-after-statement -Werror -O3 -c -o memory.o memory.c
+
+gcc -DHAVE_CONFIG_H -I. -I.. -Wall -Wextra -Wdeclaration-after-statement -Werror -O3 -c -o pack_unpack.o pack_unpack.c
+
+gcc -DHAVE_CONFIG_H -I. -I.. -Wall -Wextra -Wdeclaration-after-statement -Werror -O3 -c -o strbuffer.o strbuffer.c
+
+gcc -DHAVE_CONFIG_H -I. -I.. -Wall -Wextra -Wdeclaration-after-statement -Werror -O3 -c -o strconv.o strconv.c
+
+gcc -DHAVE_CONFIG_H -I. -I.. -Wall -Wextra -Wdeclaration-after-statement -Werror -O3 -c -o utf.o utf.c
+
+gcc -DHAVE_CONFIG_H -I. -I.. -Wall -Wextra -Wdeclaration-after-statement -Werror -O3 -c -o value.o value.c
+
+ar cru libjansson.a error.o hashtable.o load.o memory.o pack_unpack.o strbuffer.o strconv.o utf.o value.o
+
+rm -f ../libjansson.a
+cp libjansson.a ../
+
+rm -f *.o

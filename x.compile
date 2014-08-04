@@ -1,0 +1,46 @@
+
+rm -f *.o
+
+ARCH="$(getconf LONG_BIT)"
+
+POINTERSIGN="-Wno-pointer-sign"
+UNUSEDRESULT="-Wno-unused-result"
+SETVARIABLE="-Wno-unused-but-set-variable"
+UNUSEDVARIABLE="-Wno-unused-variable"
+WRITESTRINGS="-Wno-write-strings"
+WNOSIGNCOMPARE="-Wno-sign-compare"
+WNOARRAYBOUNDS="-Wno-array-bounds"
+
+
+gcc -Wall -g -O3 -fomit-frame-pointer -fPIC -J4 -c threadPool.c -o threadPool.o
+gcc -Wall -g -O3 -fomit-frame-pointer -fPIC -J4 -Ijsonlib -c helper.c -o helper.o
+gcc -Wall -g -O3 -fomit-frame-pointer -fPIC -J4 -c -o log.o log.c
+gcc -Wall -g -O3 -fomit-frame-pointer -fPIC -J4 -c -o encrypt.o encrypt.c
+gcc -Wall -g -O3 -fomit-frame-pointer -fPIC -J4 -c -o hook.o hook.c
+gcc -Wall -g -O3 -fomit-frame-pointer -fPIC -J4 -c -o icmp.o icmp.c
+
+######################## INI File Parser ##########################
+gcc -Wall -g -O3 -fomit-frame-pointer -fPIC -ansi -pedantic -J4 -c -o iniparser.o iniparser.c
+gcc -Wall -g -O3 -fomit-frame-pointer -fPIC -ansi -pedantic -J4 -c -o dictionary.o dictionary.c
+######################## INI File Parser ##########################
+
+
+if [ "$ARCH" = "32" ]; then
+    gcc -Wall -rdynamic -g -O3 -fomit-frame-pointer $WRITESTRINGS $UNUSEDRESULT $WNOSIGNCOMPARE $UNUSEDVARIABLE $SETVARIABLE $WNOARRAYBOUNDS -o smithd smithd.cpp threadPool.o hook.o helper.o log.o iniparser.o dictionary.o encrypt.o icmp.o liboauth.a libmysqlwrap.a libjansson.a -I/usr/local/include -I/usr/local/include/libmongoc-1.0 -I/usr/local/include/libbson-1.0 -L/usr/lib -Xlinker -zmuldefs -lpthread -lcurl -lm -lzmq -lstdc++ -lmysqlclient -lmongoc-1.0 -lbson-1.0
+    
+    gcc -Wall -rdynamic -g -O3 -fomit-frame-pointer $WRITESTRINGS $UNUSEDRESULT $WNOSIGNCOMPARE $UNUSEDVARIABLE $SETVARIABLE $WNOARRAYBOUNDS -o str str.cpp threadPool.o hook.o helper.o log.o iniparser.o dictionary.o encrypt.o liboauth.a libmysqlwrap.a libjansson.a -I/usr/local/include -I/usr/local/include/libmongoc-1.0 -I/usr/local/include/libbson-1.0 -L/usr/lib -Xlinker -zmuldefs -lpthread -lcurl -lm -lzmq -lstdc++ -lmysqlclient -lmongoc-1.0 -lbson-1.0
+    
+    cd test
+    gcc -Wall -rdynamic -g -O3 -fomit-frame-pointer $WRITESTRINGS $UNUSEDRESULT $WNOSIGNCOMPARE $UNUSEDVARIABLE $SETVARIABLE $WNOARRAYBOUNDS -o testHooker testHooker.c ../hook.o ../helper.o ../log.o ../iniparser.o ../dictionary.o ../encrypt.o ../liboauth.a ../libjansson.a -I/usr/local/include -I../jsonlib -L/usr/lib -Xlinker -zmuldefs -lpthread -lcurl -lm -lzmq -lstdc++ -lmysqlclient
+    cd ..
+elif [ "$ARCH" = "64" ]; then
+    gcc -Wall -rdynamic -g -O3 -fomit-frame-pointer $WRITESTRINGS $UNUSEDRESULT $WNOSIGNCOMPARE $UNUSEDVARIABLE $SETVARIABLE $WNOARRAYBOUNDS -o smithd smithd.cpp threadPool.o hook.o helper.o log.o iniparser.o dictionary.o encrypt.o icmp.o liboauth.a libmysqlwrap.a libjansson.a -I/usr/local/include -I/usr/local/include/libmongoc-1.0 -I/usr/local/include/libbson-1.0 -L/usr/local/lib -Xlinker -zmuldefs -lpthread -lcurl -lm -lzmq -lstdc++ -lmysqlclient -lmongoc-1.0 -lbson-1.0
+    
+    gcc -Wall -rdynamic -g -O3 -fomit-frame-pointer $WRITESTRINGS $UNUSEDRESULT $WNOSIGNCOMPARE $UNUSEDVARIABLE $SETVARIABLE $WNOARRAYBOUNDS -o str str.cpp threadPool.o hook.o helper.o log.o iniparser.o dictionary.o encrypt.o liboauth.a libmysqlwrap.a libjansson.a -I/usr/local/include -I/usr/local/include/libmongoc-1.0 -I/usr/local/include/libbson-1.0 -L/usr/local/lib -Xlinker -zmuldefs -lpthread -lcurl -lm -lzmq -lstdc++ -lmysqlclient -lmongoc-1.0 -lbson-1.0
+    
+    cd test
+    gcc -Wall -rdynamic -g -O3 -fomit-frame-pointer $WRITESTRINGS $UNUSEDRESULT $WNOSIGNCOMPARE $UNUSEDVARIABLE $SETVARIABLE $WNOARRAYBOUNDS -o testHooker testHooker.c ../hook.o ../helper.o ../log.o ../iniparser.o ../dictionary.o ../encrypt.o ../liboauth.a ../libjansson.a -I/usr/local/include -I../jsonlib -L/usr/local/lib -Xlinker -zmuldefs -lpthread -lcurl -lm -lzmq -lstdc++ -lmysqlclient
+    cd ..
+fi
+
+rm -f *.o

@@ -1,0 +1,92 @@
+#!/bin/bash
+#
+# x.startup - This shell script takes care of starting and stopping str
+#
+# Author: rockmetoo
+# Email: rockmetoo@gmail.com
+
+red='\e[0;31m'
+green='\e[0;32m'
+yellow='\e[0;33m'
+blue='\e[0;34m'
+NC='\e[0m'
+
+PIDFILE=/var/run/str1.pid
+DAEMON=/home/smith/str
+# env; local or development or production
+OPTIONS='--env local --port 6666 --pid /var/run/str1.pid --log /var/log/str/str1.log --maxthread 90'
+
+processCheck() {
+    ps -p $1 > /dev/null
+    if [ $? -eq 0 ]
+    then
+        echo -e "$2 ${green}running${NC} [$1]"
+    else
+        echo -e "$2 ${yellow}not found (down?)${NC}"
+    fi
+}
+
+start() {
+        echo -n "Starting str1 Daemon Server..."
+        if [ -f $PIDFILE ]; then
+                PID=`cat $PIDFILE`
+                echo str already running: $PID
+                exit 2;
+        else
+        		sysctl -w net.core.somaxconn=4096
+				sysctl -w net.ipv4.tcp_tw_recycle=1
+				sysctl -w net.ipv4.tcp_tw_reuse=1
+				ulimit -s unlimited
+				ulimit -n 4096
+				ulimit -u 2048
+				ulimit -v unlimited
+				ulimit -x unlimited
+				ulimit -m unlimited
+                $DAEMON $OPTIONS
+                RETVAL=$?
+                echo
+                [ $RETVAL -eq 0 ] && mkdir -p /var/log/str && mkdir -p /var/lock/str1/ && touch /var/lock/str1/str1
+                return $RETVAL
+        fi
+
+}
+
+stop() {
+        echo -n "Shutting down str1..."
+        echo
+        killall -9 str
+        echo
+        rm -f /var/lock/str1/str1
+        rm -f /var/run/str1.pid
+        return 0
+}
+
+status() {
+        if [ -f $PIDFILE ]
+        then
+            processCheck `cat $PIDFILE` "str"
+        else
+            echo -e "str ${blue}not running${NC}"
+        fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo "Usage:  {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+exit $?

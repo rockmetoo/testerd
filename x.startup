@@ -1,0 +1,92 @@
+#!/bin/bash
+#
+# x.startup - This shell script takes care of starting and stopping smithd
+#
+# Author: rockmetoo
+# Email: rockmetoo@gmail.com
+
+red='\e[0;31m'
+green='\e[0;32m'
+yellow='\e[0;33m'
+blue='\e[0;34m'
+NC='\e[0m'
+
+PIDFILE=/var/run/smithd.pid
+DAEMON=/home/smith/smithd
+# env; local or development or production
+OPTIONS='--env local --port 5555 --pid /var/run/smithd.pid --cli /home/smithcp/cli'
+
+processCheck() {
+    ps -p $1 > /dev/null
+    if [ $? -eq 0 ]
+    then
+        echo -e "$2 ${green}running${NC} [$1]"
+    else
+        echo -e "$2 ${yellow}not found (down?)${NC}"
+    fi
+}
+
+start() {
+        echo -n "Starting smithd Daemon Server..."
+        if [ -f $PIDFILE ]; then
+                PID=`cat $PIDFILE`
+                echo smithd already running: $PID
+                exit 2;
+        else
+        		sysctl -w net.core.somaxconn=4096
+				sysctl -w net.ipv4.tcp_tw_recycle=1
+				sysctl -w net.ipv4.tcp_tw_reuse=1
+				ulimit -s unlimited
+				ulimit -n 4096
+				ulimit -u 2048
+				ulimit -v unlimited
+				ulimit -x unlimited
+				ulimit -m unlimited
+                $DAEMON $OPTIONS
+                RETVAL=$?
+                echo
+                [ $RETVAL -eq 0 ] && mkdir -p /var/log/smithd && mkdir -p /var/lock/smithd/ && touch /var/lock/smithd/smithd
+                return $RETVAL
+        fi
+
+}
+
+stop() {
+        echo -n "Shutting down smithd..."
+        echo
+        killall -9 smithd
+        echo
+        rm -f /var/lock/smithd/smithd
+        rm -f /var/run/smithd.pid
+        return 0
+}
+
+status() {
+        if [ -f $PIDFILE ]
+        then
+            processCheck `cat $PIDFILE` "smithd"
+        else
+            echo -e "smithd ${blue}not running${NC}"
+        fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo "Usage:  {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+exit $?

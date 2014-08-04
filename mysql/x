@@ -1,0 +1,20 @@
+gcc -Wall -g -O3 -J4 -MD  -c -o Database.o Database.cpp -lstdc++
+gcc -Wall -g -O3 -J4 -MD  -c -o Query.o Query.cpp -lstdc++
+gcc -Wall -g -O3 -J4 -MD  -c -o StderrLog.o StderrLog.cpp -lstdc++
+gcc -Wall -g -O3 -J4 -MD  -c -o SysLog.o SysLog.cpp -lstdc++
+gcc -Wall -g -O3 -J4 -MD  -c -o enum_t.o enum_t.cpp -lstdc++
+gcc -Wall -g -O3 -J4 -MD  -c -o set_t.o set_t.cpp -lstdc++
+
+ar cru libmysqlwrap.a Database.o Query.o StderrLog.o SysLog.o enum_t.o set_t.o
+ranlib libmysqlwrap.a
+cat IError.h StderrLog.h SysLog.h enum_t.h set_t.h Database.h Query.h > mysqlwrap.h
+
+rm -f ../libmysqlwrap.a
+cp libmysqlwrap.a ../
+rm -f libmysqlwrap.a
+
+rm -f ../mysqlwrap.h
+cp mysqlwrap.h ../
+rm -f mysqlwrap.h
+
+rm -f *.o Query.d set_t.d StderrLog.d SysLog.d Database.d enum_t.d
