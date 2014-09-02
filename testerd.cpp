@@ -12,16 +12,16 @@
  * sudo ulimit -m unlimited
  */
 
-#include "str.h"
+#include "testerd.h"
 
 #include <stdio.h>
-#include <unistd.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <exception>
 #include <mysql/mysql.h>
 #include <mongoc.h>
 #include <bson.h>
+#include <sys/resource.h>
 
 #include "log.h"
 #include "helper.h"
@@ -1355,7 +1355,7 @@ void httpRocket(void* data)
 		bson_context_t* context;
 		bson_t			b;
 		bson_oid_t		oid;
-		bson_bool_t		mongoRet;
+		bool			mongoRet;
 		bson_error_t	error;
 
 		context = bson_context_new(BSON_CONTEXT_NONE);
@@ -1436,7 +1436,7 @@ void httpDownloadRocket(void* data)
 		bson_context_t* context;
 		bson_t			b;
 		bson_oid_t		oid;
-		bson_bool_t		mongoRet;
+		bool			mongoRet;
 		bson_error_t	error;
 
 		context = bson_context_new(BSON_CONTEXT_NONE);
@@ -1517,7 +1517,7 @@ void httpUploadRocket(void* data)
 		bson_context_t* context;
 		bson_t			b;
 		bson_oid_t		oid;
-		bson_bool_t		mongoRet;
+		bool			mongoRet;
 		bson_error_t	error;
 
 		context = bson_context_new(BSON_CONTEXT_NONE);
@@ -1678,7 +1678,7 @@ void processOptions()
 				{
 					if((pszLog = safeStrdup(optarg)) == NULL)
 					{
-						strcpy(g_szLogFileName, "/var/log/str/str.log");
+						strcpy(g_szLogFileName, "/var/log/testerd/testerd.log");
 					}
 					else
 					{

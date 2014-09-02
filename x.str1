@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# x.startup - This shell script takes care of starting and stopping str
+# x.startup - This shell script takes care of starting and stopping testerd1
 #
 # Author: rockmetoo
 # Email: rockmetoo@gmail.com
@@ -11,10 +11,10 @@ yellow='\e[0;33m'
 blue='\e[0;34m'
 NC='\e[0m'
 
-PIDFILE=/var/run/str1.pid
-DAEMON=/home/smith/str
+PIDFILE=/var/run/testerd1.pid
+DAEMON=/home/testerd/testerd
 # env; local or development or production
-OPTIONS='--env local --port 6666 --pid /var/run/str1.pid --log /var/log/str/str1.log --maxthread 90'
+OPTIONS='--env local --port 6666 --pid /var/run/testerd1.pid --log /var/log/testerd/testerd1.log --maxthread 90'
 
 processCheck() {
     ps -p $1 > /dev/null
@@ -27,10 +27,10 @@ processCheck() {
 }
 
 start() {
-        echo -n "Starting str1 Daemon Server..."
+        echo -n "Starting testerd1 Daemon Server..."
         if [ -f $PIDFILE ]; then
                 PID=`cat $PIDFILE`
-                echo str already running: $PID
+                echo testerd1 already running: $PID
                 exit 2;
         else
         		sysctl -w net.core.somaxconn=4096
@@ -45,28 +45,28 @@ start() {
                 $DAEMON $OPTIONS
                 RETVAL=$?
                 echo
-                [ $RETVAL -eq 0 ] && mkdir -p /var/log/str && mkdir -p /var/lock/str1/ && touch /var/lock/str1/str1
+                [ $RETVAL -eq 0 ] && mkdir -p /var/log/testerd && mkdir -p /var/lock/testerd1/ && touch /var/lock/testerd1/testerd1
                 return $RETVAL
         fi
 
 }
 
 stop() {
-        echo -n "Shutting down str1..."
+        echo -n "Shutting down all testerd..."
         echo
-        killall -9 str
+        killall -9 testerd
         echo
-        rm -f /var/lock/str1/str1
-        rm -f /var/run/str1.pid
+        rm -f /var/lock/testerd1/testerd1
+        rm -f /var/run/testerd1.pid
         return 0
 }
 
 status() {
         if [ -f $PIDFILE ]
         then
-            processCheck `cat $PIDFILE` "str"
+            processCheck `cat $PIDFILE` "testerd1"
         else
-            echo -e "str ${blue}not running${NC}"
+            echo -e "testerd1 ${blue}not running${NC}"
         fi
 }
 

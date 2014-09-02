@@ -13,16 +13,16 @@
  * sudo ulimit -m unlimited
  */
 
-#include "smithd.h"
+#include "testerbrokerd.h"
 
 #include <stdio.h>
-#include <unistd.h>
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <exception>
 #include <mysql/mysql.h>
 #include <mongoc.h>
 #include <bson.h>
+#include <sys/resource.h>
 
 #include <sys/socket.h>
 #include <netdb.h>
@@ -284,14 +284,14 @@ BOOL smithd::onRecvRunSpecificPlot()
 				collection = mongoc_client_get_collection(client, pszPlotReportDb, collectionName);
 
 				bson_t			b;
-				bson_bool_t		mongoRet;
+				bool			mongoRet;
 				bson_error_t	error;
 
 				bson_init(&b);
 				bson_append_int64(&b, "userId", -1, dwUsedId);
 				bson_append_utf8(&b, "plotName", -1, pszPlotName, strlen(pszPlotName));
 
-				mongoRet = mongoc_collection_delete(collection, MONGOC_DELETE_NONE, &b, NULL, &error);
+				mongoRet = mongoc_collection_remove(collection, MONGOC_REMOVE_NONE, &b, NULL, &error);
 
 				if(!mongoRet)
 				{
@@ -887,14 +887,14 @@ BOOL smithd::onRecvRunDownloadSpecificPlot()
 				collection = mongoc_client_get_collection(client, pszPlotReportDb, collectionName);
 
 				bson_t			b;
-				bson_bool_t		mongoRet;
+				bool			mongoRet;
 				bson_error_t	error;
 
 				bson_init(&b);
 				bson_append_int64(&b, "userId", -1, dwUsedId);
 				bson_append_utf8(&b, "plotName", -1, pszPlotName, strlen(pszPlotName));
 
-				mongoRet = mongoc_collection_delete(collection, MONGOC_DELETE_NONE, &b, NULL, &error);
+				mongoRet = mongoc_collection_remove(collection, MONGOC_REMOVE_NONE, &b, NULL, &error);
 
 				if(!mongoRet)
 				{
@@ -1175,14 +1175,14 @@ BOOL smithd::onRecvRunUploadSpecificPlot()
 				collection = mongoc_client_get_collection(client, pszPlotReportDb, collectionName);
 
 				bson_t			b;
-				bson_bool_t		mongoRet;
+				bool			mongoRet;
 				bson_error_t	error;
 
 				bson_init(&b);
 				bson_append_int64(&b, "userId", -1, dwUsedId);
 				bson_append_utf8(&b, "plotName", -1, pszPlotName, strlen(pszPlotName));
 
-				mongoRet = mongoc_collection_delete(collection, MONGOC_DELETE_NONE, &b, NULL, &error);
+				mongoRet = mongoc_collection_remove(collection, MONGOC_REMOVE_NONE, &b, NULL, &error);
 
 				if(!mongoRet)
 				{
@@ -1207,7 +1207,7 @@ BOOL smithd::onRecvRunUploadSpecificPlot()
 			);
 			updateQuery.free_result();
 
-			// XXX: IMPORTANT - Hop count between smithd and test host
+			// XXX: IMPORTANT - Hop count between testerd and test host
 			pthread_t ptHops;
 			struct stTraceRoute traceRt;
 			urlst* url;
@@ -1227,7 +1227,7 @@ BOOL smithd::onRecvRunUploadSpecificPlot()
 			{
 		    	if(gSTRStatus[nI][2] >= accessLimit)
 				{
-					logDebug("smithd got a STR [%d - %s] which can handle all test jobs\n", nI, szListOfThreadRunner[nI]);
+					logDebug("testerbrokerd got a STR [%d - %s] which can handle all test jobs\n", nI, szListOfThreadRunner[nI]);
 
 					struct stSTRReqValue reqData;
 					bzero(&reqData, sizeof(struct stSTRReqValue));
@@ -2120,6 +2120,7 @@ void processOptions()
 		{"myport",	required_argument,	NULL, 0		},
 		{"mydb",	required_argument,	NULL, 0		},
 		{"cli",		required_argument,	NULL, 0		},
+		{"log",		required_argument,	NULL, 0		},
 		{"help",	0, 					NULL, 'h'	},
 		{0,			0, 					NULL, 0		}
 	};
@@ -2128,6 +2129,7 @@ void processOptions()
 	char* pszPort	= NULL;
 	char* pszConfig	= NULL;
 	char* pszCli	= NULL;
+	char* pszLog	= NULL;
 
 	// default settings
 	strcpy(SMITH_PID_FILE, "/var/run/smithd.pid");
@@ -2224,6 +2226,20 @@ void processOptions()
 					}
 
 					pszCli = NULL;
+				}
+
+				if(strcmp(pszOpt->name, "log") == 0)
+				{
+					if((pszLog = safeStrdup(optarg)) == NULL)
+					{
+						strcpy(g_szLogFileName, "/var/log/testerbrokerd/testerbrokerd.log");
+					}
+					else
+					{
+						strcpy(g_szLogFileName, pszLog);
+					}
+
+					pszLog = NULL;
 				}
 
 				break;

@@ -16,6 +16,8 @@ extern "C" {
 #include <string.h>
 #include "dictionary.h"
 
+void				logError(const char* pszString, ...);
+
 /**
  * @brief    Get number of sections in a dictionary
  * @param    d   Dictionary to examine

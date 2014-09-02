@@ -11,10 +11,10 @@ yellow='\e[0;33m'
 blue='\e[0;34m'
 NC='\e[0m'
 
-PIDFILE=/var/run/smithd.pid
-DAEMON=/home/smith/smithd
+PIDFILE=/var/run/testerbrokerd.pid
+DAEMON=/home/testerd/testerbrokerd
 # env; local or development or production
-OPTIONS='--env local --port 5555 --pid /var/run/smithd.pid --cli /home/smithcp/cli'
+OPTIONS='--env local --port 5555 --pid /var/run/testerbrokerd.pid --log /var/log/testerbrokerd/testerbrokerd.log --cli /home/cockpit/cli'
 
 processCheck() {
     ps -p $1 > /dev/null
@@ -45,28 +45,28 @@ start() {
                 $DAEMON $OPTIONS
                 RETVAL=$?
                 echo
-                [ $RETVAL -eq 0 ] && mkdir -p /var/log/smithd && mkdir -p /var/lock/smithd/ && touch /var/lock/smithd/smithd
+                [ $RETVAL -eq 0 ] && mkdir -p /var/log/testerbrokerd && mkdir -p /var/lock/testerbrokerd/ && touch /var/lock/testerbrokerd/testerbrokerd
                 return $RETVAL
         fi
 
 }
 
 stop() {
-        echo -n "Shutting down smithd..."
+        echo -n "Shutting down testerbrokerd..."
         echo
         killall -9 smithd
         echo
-        rm -f /var/lock/smithd/smithd
-        rm -f /var/run/smithd.pid
+        rm -f /var/lock/testerbrokerd/testerbrokerd
+        rm -f /var/run/testerbrokerd.pid
         return 0
 }
 
 status() {
         if [ -f $PIDFILE ]
         then
-            processCheck `cat $PIDFILE` "smithd"
+            processCheck `cat $PIDFILE` "testerbrokerd"
         else
-            echo -e "smithd ${blue}not running${NC}"
+            echo -e "testerbrokerd ${blue}not running${NC}"
         fi
 }
 

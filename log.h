@@ -15,8 +15,8 @@ extern "C" {
 
 #define TIMEFORMAT				"%Z %b %e %T"
 #define LOGMASK					0112
-char	g_szProgName[64]		= {"cockpitD"};
-char	g_szLogFileName[256+1]	= {"/var/log/smithd/smithd.log"};
+char	g_szProgName[64]		= {"testerd"};
+char	g_szLogFileName[256+1]	= {"/var/log/testerbrokerd/testerbrokerd.log"};
 int		g_nIsSyslog 			= 0;
 int		g_nFacility 			= 3;
 int		g_nDebug				= 0;
