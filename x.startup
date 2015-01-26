@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# x.startup - This shell script takes care of starting and stopping smithd
+# x.startup - This shell script takes care of starting and stopping testerbrokerd
 #
 # Author: rockmetoo
 # Email: rockmetoo@gmail.com
@@ -27,10 +27,10 @@ processCheck() {
 }
 
 start() {
-        echo -n "Starting smithd Daemon Server..."
+        echo -n "Starting testerbrokerd Daemon Server..."
         if [ -f $PIDFILE ]; then
                 PID=`cat $PIDFILE`
-                echo smithd already running: $PID
+                echo testerbrokerd already running: $PID
                 exit 2;
         else
         		sysctl -w net.core.somaxconn=4096
@@ -54,7 +54,7 @@ start() {
 stop() {
         echo -n "Shutting down testerbrokerd..."
         echo
-        killall -9 smithd
+        killall -9 testerbrokerd
         echo
         rm -f /var/lock/testerbrokerd/testerbrokerd
         rm -f /var/run/testerbrokerd.pid

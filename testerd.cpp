@@ -34,7 +34,7 @@
 
 #define BUF_SIZE					10*1024
 #define ASCIILINESZ					(1024)
-#define	COPYRIGHT					"©Data Trench. All rights reserved"
+#define	COPYRIGHT					"©Mechanics. All rights reserved"
 #define MAX_CMD_SIZE				1024
 
 static				sigset_t		mask;
@@ -206,7 +206,7 @@ BOOL str::onRecvRunTestHttpPlot()
 		Query q(db);
 
 		// XXX: IMPORTANT - move the test plot in 'testing' mode
-		q.DoQuery(1024, "UPDATE `smith`.`httpTestPlot` SET plotStatus=2 WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
+		q.DoQuery(1024, "UPDATE `cockpit`.`httpTestPlot` SET plotStatus=2 WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
 
 		logDebug("Plot name %s is going to test for user %lu\n", pszPlotName, dwUsedId);
 
@@ -233,12 +233,12 @@ BOOL str::onRecvRunTestHttpPlot()
 
 		char	szQuery[1024]	= {0};
 
-		sprintf(szQuery, "SELECT * FROM `smith`.`httpTestPlot` WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
+		sprintf(szQuery, "SELECT * FROM `cockpit`.`httpTestPlot` WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
 		q.get_result(szQuery);
 
 		if(q.GetErrno())
 		{
-			logInfo("SELECT * FROM `smith`.`httpTestPlot` SQL Error at %d\n", __LINE__);
+			logInfo("SELECT * FROM `cockpit`.`httpTestPlot` SQL Error at %d\n", __LINE__);
 			/**
 			 * TODO: task is not completed properly so we need to store pszUserId, pszPlotName, pszPlotType
 			 * in a separate table called 'unfinishedTestJob' and another process will check it and do the task
@@ -405,7 +405,7 @@ BOOL str::onRecvRunTestHttpDownloadPlot()
 		Query q(db);
 
 		// XXX: IMPORTANT - move the test plot in 'testing' mode
-		q.DoQuery(1024, "UPDATE `smith`.`httpDownloadTestPlot` SET plotStatus=2 WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
+		q.DoQuery(1024, "UPDATE `cockpit`.`httpDownloadTestPlot` SET plotStatus=2 WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
 
 		logDebug("Plot name %s is going to test for user %lu\n", pszPlotName, dwUsedId);
 
@@ -432,12 +432,12 @@ BOOL str::onRecvRunTestHttpDownloadPlot()
 
 		char	szQuery[1024]	= {0};
 
-		sprintf(szQuery, "SELECT * FROM `smith`.`httpDownloadTestPlot` WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
+		sprintf(szQuery, "SELECT * FROM `cockpit`.`httpDownloadTestPlot` WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
 		q.get_result(szQuery);
 
 		if(q.GetErrno())
 		{
-			logInfo("SELECT * FROM `smith`.`httpDownloadTestPlot` SQL Error at %d\n", __LINE__);
+			logInfo("SELECT * FROM `cockpit`.`httpDownloadTestPlot` SQL Error at %d\n", __LINE__);
 			/**
 			 * TODO: task is not completed properly so we need to store pszUserId, pszPlotName, pszPlotType
 			 * in a separate table called 'unfinishedTestJob' and another process will check it and do the task
@@ -583,7 +583,7 @@ BOOL str::onRecvRunTestHttpUploadPlot()
 		Query q(db);
 
 		// XXX: IMPORTANT - move the test plot in 'testing' mode
-		q.DoQuery(1024, "UPDATE `smith`.`httpUploadTestPlot` SET plotStatus=2 WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
+		q.DoQuery(1024, "UPDATE `cockpit`.`httpUploadTestPlot` SET plotStatus=2 WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
 
 		logDebug("Plot name %s is going to test for user %lu\n", pszPlotName, dwUsedId);
 
@@ -610,12 +610,12 @@ BOOL str::onRecvRunTestHttpUploadPlot()
 
 		char	szQuery[1024]	= {0};
 
-		sprintf(szQuery, "SELECT * FROM `smith`.`httpUploadTestPlot` WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
+		sprintf(szQuery, "SELECT * FROM `cockpit`.`httpUploadTestPlot` WHERE userId='%u' AND plotName='%s'", dwUsedId, pszPlotName);
 		q.get_result(szQuery);
 
 		if(q.GetErrno())
 		{
-			logInfo("SELECT * FROM `smith`.`httpUploadTestPlot` SQL Error [%d]\n", __LINE__);
+			logInfo("SELECT * FROM `cockpit`.`httpUploadTestPlot` SQL Error [%d]\n", __LINE__);
 			/**
 			 * TODO: task is not completed properly so we need to store pszUserId, pszPlotName, pszPlotType
 			 * in a separate table called 'unfinishedTestJob' and another process will check it and do the task
@@ -1787,11 +1787,11 @@ int main(int argc, char** argv)
 		sprintf(MYSQL_USER_ACCESS, "root");
 		sprintf(MYSQL_PASS_ACCESS, "mypassword");
 		sprintf(MYSQL_PORT_ACCESS, "3306");
-		sprintf(MYSQL_DB_ACCESS, "smith");
+		sprintf(MYSQL_DB_ACCESS, "cockpit");
 
 		sprintf(MONGO_HOST_ACCESS, "ec2-176-34-6-126.ap-northeast-1.compute.amazonaws.com");
 		MONGO_PORT_ACCESS = 27017;
-		sprintf(MONGO_DB_ACCESS, "smith");
+		sprintf(MONGO_DB_ACCESS, "cockpit");
 
 		sprintf(gHostAddr, "*");
 	}
@@ -1801,11 +1801,11 @@ int main(int argc, char** argv)
 		sprintf(MYSQL_USER_ACCESS, "root");
 		sprintf(MYSQL_PASS_ACCESS, "mypassword");
 		sprintf(MYSQL_PORT_ACCESS, "3306");
-		sprintf(MYSQL_DB_ACCESS, "smith");
+		sprintf(MYSQL_DB_ACCESS, "cockpit");
 
 		sprintf(MONGO_HOST_ACCESS, "localhost");
 		MONGO_PORT_ACCESS = 27017;
-		sprintf(MONGO_DB_ACCESS, "smith");
+		sprintf(MONGO_DB_ACCESS, "cockpit");
 
 		sprintf(gHostAddr, "127.0.0.1");
 	}
@@ -1815,11 +1815,11 @@ int main(int argc, char** argv)
 		sprintf(MYSQL_USER_ACCESS, "root");
 		sprintf(MYSQL_PASS_ACCESS, "mypassword");
 		sprintf(MYSQL_PORT_ACCESS, "3306");
-		sprintf(MYSQL_DB_ACCESS, "smith");
+		sprintf(MYSQL_DB_ACCESS, "cockpit");
 
 		sprintf(MONGO_HOST_ACCESS, "localhost");
 		MONGO_PORT_ACCESS = 27017;
-		sprintf(MONGO_DB_ACCESS, "smith");
+		sprintf(MONGO_DB_ACCESS, "cockpit");
 
 		sprintf(gHostAddr, "*");
 	}
@@ -1829,11 +1829,11 @@ int main(int argc, char** argv)
 		sprintf(MYSQL_USER_ACCESS, "root");
 		sprintf(MYSQL_PASS_ACCESS, "mypassword");
 		sprintf(MYSQL_PORT_ACCESS, "3306");
-		sprintf(MYSQL_DB_ACCESS, "smith");
+		sprintf(MYSQL_DB_ACCESS, "cockpit");
 
 		sprintf(MONGO_HOST_ACCESS, "localhost");
 		MONGO_PORT_ACCESS = 27017;
-		sprintf(MONGO_DB_ACCESS, "www_smith_com");
+		sprintf(MONGO_DB_ACCESS, "cockpit");
 
 		sprintf(gHostAddr, "127.0.0.1");
 	}

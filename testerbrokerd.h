@@ -8,13 +8,13 @@ int 	m_argc;
 char** 	m_argv;
 
 
-class smithd
+class testerBrokerd
 {
 	private:
 
 	public:
-		smithd();
-		~smithd();
+		testerBrokerd();
+		~testerBrokerd();
 
 		BOOL onRecvCommand();
 		BOOL onRecvRunSpecificPlot();

@@ -56,13 +56,13 @@ char				gHostAddr[255]		= {0};
 pid_t				gDaemonPid;
 uid_t				gDaemonUid;
 gid_t				gDaemonGid;
-char*				SMITH_PID_FILE		= new char[512];
-char*				SMITH_CONFIG_FILE	= new char[512];
+char*				TESTER_BROKER_PID_FILE		= new char[512];
+char*				TESTER_BROKER_CONFIG_FILE	= new char[512];
 struct threadpool*	tPoolWorker			= NULL;
 
-int 				gListOfSmithd		= 0;
+int 				gListOfTesterBrokerd		= 0;
 int 				gListOfThreadRunner	= 0;
-int					gsmithId			= 0;
+int					gTesterBrokerId		= 0;
 int					gNumOfPlotReportDB	= 0;
 
 char				gConnection[256];
@@ -80,9 +80,9 @@ struct stSTRReqValue
 	int				nRandomReportDbIndex;
 };
 
-char*				SMITH_CLI_PATH		= new char[256];
+char*				TESTER_BROKER_CLI_PATH		= new char[256];
 
-const char* gSMITHCP_CLI_SCRIPT[]		=
+const char* gCOCKPIT_CLI_SCRIPT[]		=
 {
 	"/usr/bin/php createHttpTestreport.php",
 	"/usr/bin/php createHttpDownloadTestreport.php",
@@ -101,11 +101,11 @@ void	checkAllSTRStatus();
 int		parseConfigFile(char* pszFileName);
 static void* countMaxHops(void* arguments);
 
-smithd::smithd(){}
+testerBrokerd::testerBrokerd(){}
 
-smithd::~smithd(){}
+testerBrokerd::~testerBrokerd(){}
 
-BOOL smithd::onRecvCommand()
+BOOL testerBrokerd::onRecvCommand()
 {
 	struct timeval tvStart;
 	gettimeofday(&tvStart, NULL);
@@ -171,7 +171,7 @@ BOOL smithd::onRecvCommand()
 /**
  * XXX: if plotStatus is 0 or 3 then the test request will come here
  */
-BOOL smithd::onRecvRunSpecificPlot()
+BOOL testerBrokerd::onRecvRunSpecificPlot()
 {
 	#define CLEAN_UP(x, b) \
 		status = x; \
@@ -223,11 +223,11 @@ BOOL smithd::onRecvRunSpecificPlot()
 		char* pszPlotReportDb	= NULL;
 		char* pszBaseAddress	= NULL;
 
-		sprintf(szQuery, "SELECT accessLimit, plotReportDb, baseAddress FROM `smith`.`httpTestPlot` WHERE userId='%s' AND plotName='%s'", pszUserId, pszPlotName);
+		sprintf(szQuery, "SELECT accessLimit, plotReportDb, baseAddress FROM `cockpit`.`httpTestPlot` WHERE userId='%s' AND plotName='%s'", pszUserId, pszPlotName);
 		q.get_result(szQuery);
 		if(q.GetErrno())
 		{
-			logInfo("SELECT accessLimit FROM `smith`.`httpTestPlot` SQL Error at %d\n", __LINE__);
+			logInfo("SELECT accessLimit FROM `cockpit`.`httpTestPlot` SQL Error at %d\n", __LINE__);
 			return TRUE;
 		}
 		else
@@ -249,7 +249,7 @@ BOOL smithd::onRecvRunSpecificPlot()
 			// XXX: we are going to run a test for a http plot so update 'noOfThreadExecuted' to 0
 			q.DoQuery(
 				1024,
-				"UPDATE `smith`.`httpTestPlot` SET noOfThreadExecuted=0 WHERE userId='%s' AND plotName='%s'",
+				"UPDATE `cockpit`.`httpTestPlot` SET noOfThreadExecuted=0 WHERE userId='%s' AND plotName='%s'",
 				pszUserId, pszPlotName
 			);
 
@@ -311,12 +311,12 @@ BOOL smithd::onRecvRunSpecificPlot()
 			Query updateQuery(db);
 			updateQuery.DoQuery(
 				1024,
-				"UPDATE `smith`.`httpTestPlot` SET plotReportDb='%s' WHERE userId='%s' AND plotName='%s'",
+				"UPDATE `cockpit`.`httpTestPlot` SET plotReportDb='%s' WHERE userId='%s' AND plotName='%s'",
 				szPlotReportDb[nRandomReportDbIndex], pszUserId, pszPlotName
 			);
 			updateQuery.free_result();
 
-			// XXX: IMPORTANT - Hop count between smithd and test host
+			// XXX: IMPORTANT - Hop count between testerd and test host
 			pthread_t ptHops;
 			struct stTraceRoute traceRt;
 			urlst* url;
@@ -344,13 +344,13 @@ BOOL smithd::onRecvRunSpecificPlot()
 				// TODO: insert in plotQueue table and update plotStatus in httpTestPlot table
 				q.DoQuery(
 					1024,
-					"UPDATE `smith`.`httpTestPlot` SET plotStatus=4 WHERE userId='%s' AND plotName='%s'",
+					"UPDATE `cockpit`.`httpTestPlot` SET plotStatus=4 WHERE userId='%s' AND plotName='%s'",
 					pszUserId, pszPlotName
 				);
 
 				q.DoQuery(
 					1024,
-					"INSERT INTO `smith`.`plotQueue` (userId, plotName, testType, priority, status, dateCreated) "
+					"INSERT INTO `cockpit`.`plotQueue` (userId, plotName, testType, priority, status, dateCreated) "
 					"VALUES ('%s', '%s', '1', '%d', '0', '%s') ON DUPLICATE KEY UPDATE dateCreated='%s'",
 					pszUserId, pszPlotName
 				);
@@ -365,7 +365,7 @@ BOOL smithd::onRecvRunSpecificPlot()
 			{
 		    	if(gSTRStatus[nI][2] >= accessLimit)
 				{
-					logDebug("smithd got a STR [%d - %s] which can handle all test jobs\n", nI, szListOfThreadRunner[nI]);
+					logDebug("testerbrokerd got a STR [%d - %s] which can handle all test jobs\n", nI, szListOfThreadRunner[nI]);
 
 					struct stSTRReqValue reqData;
 					bzero(&reqData, sizeof(struct stSTRReqValue));
@@ -486,7 +486,7 @@ BOOL smithd::onRecvRunSpecificPlot()
 	return TRUE;
 }
 
-BOOL smithd::onRecvRunGetSTRStatusById()
+BOOL testerBrokerd::onRecvRunGetSTRStatusById()
 {
 	#define RETURN_STR_REPLY(x, b) \
 		status = x; \
@@ -523,7 +523,7 @@ BOOL smithd::onRecvRunGetSTRStatusById()
 	return TRUE;
 }
 
-BOOL smithd::onRecvRunSTRThreadDone()
+BOOL testerBrokerd::onRecvRunSTRThreadDone()
 {
 	#define RETURN_STR_REPLY_FOR_DONE(x, b) \
 		status = x; \
@@ -586,18 +586,18 @@ BOOL smithd::onRecvRunSTRThreadDone()
 		// XXX: IMPORTANT - 1st update how many threads we run by 'nSTRId' str
 		q.DoQuery(
 			1024,
-			"UPDATE `smith`.`httpTestPlot` SET noOfThreadExecuted=noOfThreadExecuted+%u WHERE userId='%u' AND plotName='%s'",
+			"UPDATE `cockpit`.`httpTestPlot` SET noOfThreadExecuted=noOfThreadExecuted+%u WHERE userId='%u' AND plotName='%s'",
 			nNoOfThreadExecuted, userId, pszPlotName
 		);
 
 		char szQuery[1024]	= {0};
 
-		sprintf(szQuery, "SELECT accessLimit, noOfThreadExecuted FROM `smith`.`httpTestPlot` WHERE userId='%u' AND plotName='%s'", userId, pszPlotName);
+		sprintf(szQuery, "SELECT accessLimit, noOfThreadExecuted FROM `cockpit`.`httpTestPlot` WHERE userId='%u' AND plotName='%s'", userId, pszPlotName);
 		q.get_result(szQuery);
 
 		if(q.GetErrno())
 		{
-			logInfo("SELECT accessLimit, noOfThreadExecuted FROM `smith`.`httpTestPlot` SQL Error at %d\n", __LINE__);
+			logInfo("SELECT accessLimit, noOfThreadExecuted FROM `cockpit`.`httpTestPlot` SQL Error at %d\n", __LINE__);
 			return TRUE;
 		}
 		else
@@ -619,7 +619,7 @@ BOOL smithd::onRecvRunSTRThreadDone()
 					// it will also delete the raw data from the mongo
 					char szCommand[MAX_CMD_SIZE];
 
-					snprintf(szCommand, MAX_CMD_SIZE, "cd %s;%s %u %s", SMITH_CLI_PATH, (char*)gSMITHCP_CLI_SCRIPT[0], userId, escapeShellArg(pszPlotName));
+					snprintf(szCommand, MAX_CMD_SIZE, "cd %s;%s %u %s", TESTER_BROKER_CLI_PATH, (char*)gCOCKPIT_CLI_SCRIPT[0], userId, escapeShellArg(pszPlotName));
 
 					// logDebug("CLI command: %s\n", szCommand);
 
@@ -649,18 +649,18 @@ BOOL smithd::onRecvRunSTRThreadDone()
 		// XXX: IMPORTANT - 1st update how many threads we run by 'nSTRId' str
 		q.DoQuery(
 			1024,
-			"UPDATE `smith`.`httpDownloadTestPlot` SET noOfThreadExecuted=noOfThreadExecuted+%u WHERE userId='%u' AND plotName='%s'",
+			"UPDATE `cockpit`.`httpDownloadTestPlot` SET noOfThreadExecuted=noOfThreadExecuted+%u WHERE userId='%u' AND plotName='%s'",
 			nNoOfThreadExecuted, userId, pszPlotName
 		);
 
 		char szQuery[1024]	= {0};
 
-		sprintf(szQuery, "SELECT accessLimit, noOfThreadExecuted FROM `smith`.`httpDownloadTestPlot` WHERE userId='%u' AND plotName='%s'", userId, pszPlotName);
+		sprintf(szQuery, "SELECT accessLimit, noOfThreadExecuted FROM `cockpit`.`httpDownloadTestPlot` WHERE userId='%u' AND plotName='%s'", userId, pszPlotName);
 		q.get_result(szQuery);
 
 		if(q.GetErrno())
 		{
-			logInfo("SELECT accessLimit, noOfThreadExecuted FROM `smith`.`httpDownloadTestPlot` SQL Error at %d\n", __LINE__);
+			logInfo("SELECT accessLimit, noOfThreadExecuted FROM `cockpit`.`httpDownloadTestPlot` SQL Error at %d\n", __LINE__);
 			return TRUE;
 		}
 		else
@@ -682,7 +682,7 @@ BOOL smithd::onRecvRunSTRThreadDone()
 					// it will also delete the raw data from the mongo
 					char szCommand[MAX_CMD_SIZE];
 
-					snprintf(szCommand, MAX_CMD_SIZE, "cd %s;%s %u %s", SMITH_CLI_PATH, (char*)gSMITHCP_CLI_SCRIPT[1], userId, escapeShellArg(pszPlotName));
+					snprintf(szCommand, MAX_CMD_SIZE, "cd %s;%s %u %s", TESTER_BROKER_CLI_PATH, (char*)gCOCKPIT_CLI_SCRIPT[1], userId, escapeShellArg(pszPlotName));
 
 					// logDebug("CLI command: %s\n", szCommand);
 
@@ -712,18 +712,18 @@ BOOL smithd::onRecvRunSTRThreadDone()
 		// XXX: IMPORTANT - 1st update how many threads we run by 'nSTRId' str
 		q.DoQuery(
 			1024,
-			"UPDATE `smith`.`httpUploadTestPlot` SET noOfThreadExecuted=noOfThreadExecuted+%u WHERE userId='%u' AND plotName='%s'",
+			"UPDATE `cockpit`.`httpUploadTestPlot` SET noOfThreadExecuted=noOfThreadExecuted+%u WHERE userId='%u' AND plotName='%s'",
 			nNoOfThreadExecuted, userId, pszPlotName
 		);
 
 		char szQuery[1024]	= {0};
 
-		sprintf(szQuery, "SELECT accessLimit, noOfThreadExecuted FROM `smith`.`httpUploadTestPlot` WHERE userId='%u' AND plotName='%s'", userId, pszPlotName);
+		sprintf(szQuery, "SELECT accessLimit, noOfThreadExecuted FROM `cockpit`.`httpUploadTestPlot` WHERE userId='%u' AND plotName='%s'", userId, pszPlotName);
 		q.get_result(szQuery);
 
 		if(q.GetErrno())
 		{
-			logInfo("SELECT accessLimit, noOfThreadExecuted FROM `smith`.`httpUploadTestPlot` SQL Error at %d\n", __LINE__);
+			logInfo("SELECT accessLimit, noOfThreadExecuted FROM `cockpit`.`httpUploadTestPlot` SQL Error at %d\n", __LINE__);
 			return TRUE;
 		}
 		else
@@ -745,7 +745,7 @@ BOOL smithd::onRecvRunSTRThreadDone()
 					// it will also delete the raw data from the mongo
 					char szCommand[MAX_CMD_SIZE];
 
-					snprintf(szCommand, MAX_CMD_SIZE, "cd %s;%s %u %s", SMITH_CLI_PATH, (char*)gSMITHCP_CLI_SCRIPT[2], userId, escapeShellArg(pszPlotName));
+					snprintf(szCommand, MAX_CMD_SIZE, "cd %s;%s %u %s", TESTER_BROKER_CLI_PATH, (char*)gCOCKPIT_CLI_SCRIPT[2], userId, escapeShellArg(pszPlotName));
 
 					// logDebug("CLI command: %s\n", szCommand);
 
@@ -774,7 +774,7 @@ BOOL smithd::onRecvRunSTRThreadDone()
 /**
  * XXX: if plotStatus is 0 or 3 then the test request will come here
  */
-BOOL smithd::onRecvRunDownloadSpecificPlot()
+BOOL testerBrokerd::onRecvRunDownloadSpecificPlot()
 {
 	#define CLEAN_UP_DL(x, b) \
 		status = x; \
@@ -814,7 +814,7 @@ BOOL smithd::onRecvRunDownloadSpecificPlot()
 		Query q(db);
 
 		// XXX: IMPORTANT - move the test plot in 'testing request accepted' mode
-		q.DoQuery(1024, "UPDATE `smith`.`httpDownloadTestPlot` SET plotStatus=1 WHERE userId='%s' AND plotName='%s'", pszUserId, pszPlotName);
+		q.DoQuery(1024, "UPDATE `cockpit`.`httpDownloadTestPlot` SET plotStatus=1 WHERE userId='%s' AND plotName='%s'", pszUserId, pszPlotName);
 
 		// XXX: IMPORTANT - successful command and return status message to caller
 		CLEAN_UP_DL(1, 1024)
@@ -826,11 +826,11 @@ BOOL smithd::onRecvRunDownloadSpecificPlot()
 		char* pszPlotReportDb	= NULL;
 		char* pszBaseAddress	= NULL;
 
-		sprintf(szQuery, "SELECT accessLimit, plotReportDb, baseAddress FROM `smith`.`httpDownloadTestPlot` WHERE userId='%s' AND plotName='%s'", pszUserId, pszPlotName);
+		sprintf(szQuery, "SELECT accessLimit, plotReportDb, baseAddress FROM `cockpit`.`httpDownloadTestPlot` WHERE userId='%s' AND plotName='%s'", pszUserId, pszPlotName);
 		q.get_result(szQuery);
 		if(q.GetErrno())
 		{
-			logInfo("SELECT accessLimit FROM `smith`.`httpDownloadTestPlot` SQL Error at %d\n", __LINE__);
+			logInfo("SELECT accessLimit FROM `cockpit`.`httpDownloadTestPlot` SQL Error at %d\n", __LINE__);
 			return TRUE;
 		}
 		else
@@ -852,7 +852,7 @@ BOOL smithd::onRecvRunDownloadSpecificPlot()
 			// XXX: we are going to run a test for a http plot so update 'noOfThreadExecuted' to 0
 			q.DoQuery(
 				1024,
-				"UPDATE `smith`.`httpDownloadTestPlot` SET noOfThreadExecuted=0 WHERE userId='%s' AND plotName='%s'",
+				"UPDATE `cockpit`.`httpDownloadTestPlot` SET noOfThreadExecuted=0 WHERE userId='%s' AND plotName='%s'",
 				pszUserId, pszPlotName
 			);
 
@@ -914,12 +914,12 @@ BOOL smithd::onRecvRunDownloadSpecificPlot()
 			Query updateQuery(db);
 			updateQuery.DoQuery(
 				1024,
-				"UPDATE `smith`.`httpDownloadTestPlot` SET plotReportDb='%s' WHERE userId='%s' AND plotName='%s'",
+				"UPDATE `cockpit`.`httpDownloadTestPlot` SET plotReportDb='%s' WHERE userId='%s' AND plotName='%s'",
 				szPlotReportDb[nRandomReportDbIndex], pszUserId, pszPlotName
 			);
 			updateQuery.free_result();
 
-			// XXX: IMPORTANT - Hop count between smithd and test host
+			// XXX: IMPORTANT - Hop count between testerd and test host
 			pthread_t ptHops;
 			struct stTraceRoute traceRt;
 			urlst* url;
@@ -939,7 +939,7 @@ BOOL smithd::onRecvRunDownloadSpecificPlot()
 			{
 		    	if(gSTRStatus[nI][2] >= accessLimit)
 				{
-					logDebug("smithd got a STR [%d - %s] which can handle all test jobs\n", nI, szListOfThreadRunner[nI]);
+					logDebug("testerbrokerd got a STR [%d - %s] which can handle all test jobs\n", nI, szListOfThreadRunner[nI]);
 
 					struct stSTRReqValue reqData;
 					bzero(&reqData, sizeof(struct stSTRReqValue));
@@ -1061,7 +1061,7 @@ BOOL smithd::onRecvRunDownloadSpecificPlot()
 /**
  * XXX: if plotStatus is 0 or 3 then the test request will come here
  */
-BOOL smithd::onRecvRunUploadSpecificPlot()
+BOOL testerBrokerd::onRecvRunUploadSpecificPlot()
 {
 	#define CLEAN_UP_UL(x, b) \
 		status = x; \
@@ -1101,7 +1101,7 @@ BOOL smithd::onRecvRunUploadSpecificPlot()
 		Query q(db);
 
 		// XXX: IMPORTANT - move the test plot in 'testing request accepted' mode
-		q.DoQuery(1024, "UPDATE `smith`.`httpUploadTestPlot` SET plotStatus=1 WHERE userId='%s' AND plotName='%s'", pszUserId, pszPlotName);
+		q.DoQuery(1024, "UPDATE `cockpit`.`httpUploadTestPlot` SET plotStatus=1 WHERE userId='%s' AND plotName='%s'", pszUserId, pszPlotName);
 
 		// XXX: IMPORTANT - successful command and return status message to caller
 		CLEAN_UP_UL(1, 1024)
@@ -1113,12 +1113,12 @@ BOOL smithd::onRecvRunUploadSpecificPlot()
 		char* pszPlotReportDb	= NULL;
 		char* pszBaseAddress	= NULL;
 
-		sprintf(szQuery, "SELECT accessLimit, plotReportDb, baseAddress FROM `smith`.`httpUploadTestPlot` WHERE userId='%s' AND plotName='%s'", pszUserId, pszPlotName);
+		sprintf(szQuery, "SELECT accessLimit, plotReportDb, baseAddress FROM `cockpit`.`httpUploadTestPlot` WHERE userId='%s' AND plotName='%s'", pszUserId, pszPlotName);
 		q.get_result(szQuery);
 
 		if(q.GetErrno())
 		{
-			logInfo("SELECT accessLimit, plotReportDb, baseAddress FROM `smith`.`httpUploadTestPlot` WHERE userId='%s' AND plotName='%s'\n", __LINE__);
+			logInfo("SELECT accessLimit, plotReportDb, baseAddress FROM `cockpit`.`httpUploadTestPlot` WHERE userId='%s' AND plotName='%s'\n", __LINE__);
 			return TRUE;
 		}
 		else
@@ -1140,7 +1140,7 @@ BOOL smithd::onRecvRunUploadSpecificPlot()
 			// XXX: we are going to run a test for an upload plot so update 'noOfThreadExecuted' to 0
 			q.DoQuery(
 				1024,
-				"UPDATE `smith`.`httpUploadTestPlot` SET noOfThreadExecuted=0 WHERE userId='%s' AND plotName='%s'",
+				"UPDATE `cockpit`.`httpUploadTestPlot` SET noOfThreadExecuted=0 WHERE userId='%s' AND plotName='%s'",
 				pszUserId, pszPlotName
 			);
 
@@ -1202,7 +1202,7 @@ BOOL smithd::onRecvRunUploadSpecificPlot()
 			Query updateQuery(db);
 			updateQuery.DoQuery(
 				1024,
-				"UPDATE `smith`.`httpUploadTestPlot` SET plotReportDb='%s' WHERE userId='%s' AND plotName='%s'",
+				"UPDATE `cockpit`.`httpUploadTestPlot` SET plotReportDb='%s' WHERE userId='%s' AND plotName='%s'",
 				szPlotReportDb[nRandomReportDbIndex], pszUserId, pszPlotName
 			);
 			updateQuery.free_result();
@@ -1361,13 +1361,13 @@ static int daemoNize(void)
 	// get maximum number of file descriptors
 	if(getrlimit(RLIMIT_NOFILE, &srR1) < 0)
 	{
-		logError("smith daemon failed to maximum no. of file descriptor in %s at %d\n", __FILE__, __LINE__);
+		logError("testerbrokerd daemon failed to maximum no. of file descriptor in %s at %d\n", __FILE__, __LINE__);
 		return (-1);
 	}
 	// become a session leader to lose controlling TTY
 	if((pid = fork()) < 0)
 	{
-		logError("smith daemon failed to become session leader in %s at %d\n", __FILE__, __LINE__);
+		logError("testerbrokerd daemon failed to become session leader in %s at %d\n", __FILE__, __LINE__);
 		return (-1);
 	}
 	else if(pid != 0)
@@ -1403,7 +1403,7 @@ static int daemoNize(void)
 	for(nI=0; nI<srR1.rlim_max; nI++) close(nI);
 	if((nFd = open(PATH_DEVNULL, O_RDWR)) == -1)
 	{
-		logError("smith daemon failed to open /dev/null in %s at %d\n", __FILE__, __LINE__);
+		logError("testerbrokerd daemon failed to open /dev/null in %s at %d\n", __FILE__, __LINE__);
 		return (-1);
 	}
 
@@ -1420,18 +1420,18 @@ static int daemoNize(void)
 static void daemonExit(int nCode)
 {
 	struct stat st;
-	if(stat((const char*)SMITH_PID_FILE, &st) == 0)
+	if(stat((const char*)TESTER_BROKER_PID_FILE, &st) == 0)
 	{
-		logNotice("smithd unlinking PID file %s in %s at %d\n", SMITH_PID_FILE, __FILE__, __LINE__);
+		logNotice("testerbrokerd unlinking PID file %s in %s at %d\n", TESTER_BROKER_PID_FILE, __FILE__, __LINE__);
 
-		if(unlink((const char*)SMITH_PID_FILE) == -1)
+		if(unlink((const char*)TESTER_BROKER_PID_FILE) == -1)
 		{
-			logCritical("smithd failed to unlink PID file %s in %s at %d\n", SMITH_PID_FILE, __FILE__, __LINE__);
+			logCritical("testerbrokerd failed to unlink PID file %s in %s at %d\n", TESTER_BROKER_PID_FILE, __FILE__, __LINE__);
 		}
 	}
 
 	threadpoolFree(tPoolWorker, 0);
-	logNotice("smithd exiting... at %s in %d\n", __FILE__, __LINE__);
+	logNotice("testerbrokerd exiting... at %s in %d\n", __FILE__, __LINE__);
 	exit(nCode);
 }
 
@@ -1451,9 +1451,9 @@ void workerRoutine(void* arguments)
 
 		// Connect to the dispatcher (queue) running in the main thread.
 		socket.connect("inproc://workers");
-		smithd* smith		= new smithd();
-		smith->m_context	= context;
-		smith->m_socket		= &socket;
+		testerBrokerd* tester	= new testerBrokerd();
+		tester->m_context		= context;
+		tester->m_socket		= &socket;
 
 		while(true)
 		{
@@ -1461,10 +1461,10 @@ void workerRoutine(void* arguments)
 			zmq::message_t request;
 			socket.recv(&request);
 
-			smith->m_request = &request;
-			smith->m_recvData = (UBYTE*)request.data();
+			tester->m_request	= &request;
+			tester->m_recvData	= (UBYTE*)request.data();
 
-			smith->onRecvCommand();
+			tester->onRecvCommand();
 		}
     }
 	catch(const zmq::error_t& ze)
@@ -1510,8 +1510,8 @@ void testPlotRunRoutineForSTR(void* arguments)
 	*(int*)&smithThreadRunnerReqData[dwPos] = threadData->nRandomReportDbIndex;
 	dwPos += 4;
 
-	// XXX: IMPORTANT - pass the smithd id so that STR can send status request after the job done
-	*(int*)&smithThreadRunnerReqData[dwPos] = gsmithId;
+	// XXX: IMPORTANT - pass the testerbrokerd id so that STR can send status request after the job done
+	*(int*)&smithThreadRunnerReqData[dwPos] = gTesterBrokerId;
 	dwPos += 4;
 
 	zmq::message_t req(dwPos);
@@ -1578,7 +1578,7 @@ void downloadTestPlotRunRoutineForSTR(void* arguments)
 	dwPos += 4;
 
 	// XXX: IMPORTANT - pass the smithd id so that STR can send status request after the job done
-	*(int*)&smithThreadRunnerReqData[dwPos] = gsmithId;
+	*(int*)&smithThreadRunnerReqData[dwPos] = gTesterBrokerId;
 	dwPos += 4;
 
 	zmq::message_t req(dwPos);
@@ -1645,7 +1645,7 @@ void uploadTestPlotRunRoutineForSTR(void* arguments)
 	dwPos += 4;
 
 	// XXX: IMPORTANT - pass the smithd id so that STR can send status request after the job done
-	*(int*)&smithThreadRunnerReqData[dwPos] = gsmithId;
+	*(int*)&smithThreadRunnerReqData[dwPos] = gTesterBrokerId;
 	dwPos += 4;
 
 	zmq::message_t req(dwPos);
@@ -1765,15 +1765,15 @@ int parseConfigFile(char* pszFileName)
 			daemonExit(1);
 		}
 
-		gListOfSmithd = json_array_size(root);
+		gListOfTesterBrokerd = json_array_size(root);
 
-		if(gListOfSmithd < 1)
+		if(gListOfTesterBrokerd < 1)
 		{
-			logError("no smithd configuration in smithd config file %s [%d]\n", pszFileName, __LINE__);
+			logError("no testerbrokerd configuration in testerbrokerd config file %s [%d]\n", pszFileName, __LINE__);
 			daemonExit(1);
 		}
 
-		for(int nII=0; nII<gListOfSmithd; nII++)
+		for(int nII=0; nII<gListOfTesterBrokerd; nII++)
 		{
 			json_t* smithdServers;
 
@@ -1966,7 +1966,7 @@ static void* countMaxHops(void* arguments)
 	// XXX: IMPORTANT - move the test plot in 'testing request accepted' mode
 	q.DoQuery(
 		1024,
-		"UPDATE `smith`.`%s` SET maxHops=%d WHERE userId='%u' AND plotName='%s'",
+		"UPDATE `cockpit`.`%s` SET maxHops=%d WHERE userId='%u' AND plotName='%s'",
 		traceRt.szTablename, traceRt.nHops, traceRt.dwUsedId, traceRt.szPlotName
 	);
 
@@ -1985,11 +1985,11 @@ static int daemonWritePid(void)
 {
 	int nFd;
 	char szBuff[16]	= {0};
-	nFd				= safeOpen((const char*)SMITH_PID_FILE, O_RDWR | O_CREAT, LOCKMODE);
+	nFd				= safeOpen((const char*)TESTER_BROKER_PID_FILE, O_RDWR | O_CREAT, LOCKMODE);
 
 	if(nFd < 0)
 	{
-		logError("daemonWritePid - smithd failed to open \"%s\" [%d]\n", SMITH_PID_FILE, __LINE__);
+		logError("daemonWritePid - smithd failed to open \"%s\" [%d]\n", TESTER_BROKER_PID_FILE, __LINE__);
 		return (-1);
 	}
 
@@ -2001,7 +2001,7 @@ static int daemonWritePid(void)
 			return (1);
 		}
 
-		logCritical("daemonWritePid - smithd can't lock %s [%d]\n", SMITH_PID_FILE, __LINE__);
+		logCritical("daemonWritePid - smithd can't lock %s [%d]\n", TESTER_BROKER_PID_FILE, __LINE__);
 		exit(1);
 	}
 
@@ -2023,17 +2023,17 @@ static int daemonPrivDrop(void)
 	 // already dropped user privileges.
 	if((getegid() != gDaemonGid) && (setegid(gDaemonGid) == -1))
 	{
-		logError("daemonPrivDrop - smithd failed to set group ID to %u [%d]\n", gDaemonGid, __LINE__);
+		logError("daemonPrivDrop - testerbrokerd failed to set group ID to %u [%d]\n", gDaemonGid, __LINE__);
 		return (-1);
 	}
 
 	if((geteuid() != gDaemonUid) && (seteuid(gDaemonUid) == -1))
 	{
-		logError("daemonPrivDrop - smithd failed to set user ID to %u [%d]\n", gDaemonUid, __LINE__);
+		logError("daemonPrivDrop - testerbrokerd failed to set user ID to %u [%d]\n", gDaemonUid, __LINE__);
 		return (-1);
 	}
 
-	logInfo("daemonPrivDrop - smithd dropped privileges to %u:%u [%d]\n" , gDaemonUid, gDaemonGid, __LINE__);
+	logInfo("daemonPrivDrop - testerbrokerd dropped privileges to %u:%u [%d]\n" , gDaemonUid, gDaemonGid, __LINE__);
 	return (0);
 }
 
@@ -2047,7 +2047,7 @@ static void* signalThread(void* arg){
 
 	nError = sigwait(&mask, &nSigno);
 	if(nError != 0){
-		logCritical("signalThread - smithd sigwait failed %s [%d]\n", strerror(nError), __LINE__);
+		logCritical("signalThread - testerbrokerd sigwait failed %s [%d]\n", strerror(nError), __LINE__);
 		daemonExit(1);
 	}
 
@@ -2075,20 +2075,20 @@ static void* signalThread(void* arg){
 
 void sigHUP(int nSigno)
 {
-	logInfo("signalThread - smithd receive SIGHUP signal %s\n", strsignal(nSigno));
+	logInfo("signalThread - testerbrokerd receive SIGHUP signal %s\n", strsignal(nSigno));
 	//TODO: Schedule to re-read the configuration file.
 	//reReadConf();
 }
 
 void sigTERM(int nSigno)
 {
-	logInfo("signalThread - smithd terminate with signal %s\n", strsignal(nSigno));
+	logInfo("signalThread - testerbrokerd terminate with signal %s\n", strsignal(nSigno));
 	daemonExit(1);
 }
 
 void sigQUIT(int nSigno)
 {
-	logInfo("signalThread - smithd terminate with signal %s\n", strsignal(nSigno));
+	logInfo("signalThread - testerbrokerd terminate with signal %s\n", strsignal(nSigno));
 	daemonExit(1);
 }
 
@@ -2097,7 +2097,7 @@ void sigQUIT(int nSigno)
  */
 void help(void)
 {
-	printf("smith Daemon by 800cycles <info@800cycles.com>\n");
+	printf("testerbroker Daemon by Mechanics <info@mechanics.jp>\n");
 	printf("Usage: /etc/init.d/x.startup start\n"
 		" --help        -h -?               Print this help\n"
 	);
@@ -2132,10 +2132,10 @@ void processOptions()
 	char* pszLog	= NULL;
 
 	// default settings
-	strcpy(SMITH_PID_FILE, "/var/run/smithd.pid");
+	strcpy(TESTER_BROKER_PID_FILE, "/var/run/smithd.pid");
 	strcpy(APPLICATION_ENV, "local");
-	strcpy(SMITH_CONFIG_FILE, "/etc/smith.conf");
-	strcpy(SMITH_CLI_PATH, "/home/smthcp/cli/");
+	strcpy(TESTER_BROKER_CONFIG_FILE, "/etc/smith.conf");
+	strcpy(TESTER_BROKER_CLI_PATH, "/home/cockpit/cli/");
 
 	for(;;)
 	{
@@ -2176,11 +2176,11 @@ void processOptions()
 				{
 					if((pszPid = safeStrdup(optarg)) == NULL)
 					{
-						strcpy(SMITH_PID_FILE, "/var/run/smithd.pid");
+						strcpy(TESTER_BROKER_PID_FILE, "/var/run/smithd.pid");
 					}
 					else
 					{
-						strcpy(SMITH_PID_FILE, pszPid);
+						strcpy(TESTER_BROKER_PID_FILE, pszPid);
 					}
 
 					pszPid = NULL;
@@ -2204,11 +2204,11 @@ void processOptions()
 				{
 					if((pszConfig = safeStrdup(optarg)) == NULL)
 					{
-						strcpy(SMITH_CONFIG_FILE, "/etc/smith.conf");
+						strcpy(TESTER_BROKER_CONFIG_FILE, "/etc/smith.conf");
 					}
 					else
 					{
-						strcpy(SMITH_CONFIG_FILE, pszConfig);
+						strcpy(TESTER_BROKER_CONFIG_FILE, pszConfig);
 					}
 
 					pszConfig = NULL;
@@ -2218,11 +2218,11 @@ void processOptions()
 				{
 					if((pszCli = safeStrdup(optarg)) == NULL)
 					{
-						strcpy(SMITH_CLI_PATH, "/home/smthcp/cli/");
+						strcpy(TESTER_BROKER_CLI_PATH, "/home/smthcp/cli/");
 					}
 					else
 					{
-						strcpy(SMITH_CLI_PATH, pszCli);
+						strcpy(TESTER_BROKER_CLI_PATH, pszCli);
 					}
 
 					pszCli = NULL;
@@ -2291,8 +2291,8 @@ int main(int argc, char** argv)
 
 	if(!gwPort)
 	{
-		printf("smith daemon port not initialized...\n");
-		logError("main - smithd port not initialized [%d]\n", __LINE__);
+		printf("testerbrokerd port not initialized...\n");
+		logError("testerbrokerd port not initialized [%d]\n", __LINE__);
 		exit(1);
 	}
 
@@ -2301,7 +2301,7 @@ int main(int argc, char** argv)
 	// initialize the daemon
 	init();
 
-	int nParseStatus = parseConfigFile(SMITH_CONFIG_FILE);
+	int nParseStatus = parseConfigFile(TESTER_BROKER_CONFIG_FILE);
 
 	gSTRStatus = (int**) malloc(gListOfThreadRunner * sizeof(int*));
 
@@ -2318,11 +2318,11 @@ int main(int argc, char** argv)
 		sprintf(MYSQL_USER_ACCESS, "root");
 		sprintf(MYSQL_PASS_ACCESS, "mypassword");
 		sprintf(MYSQL_PORT_ACCESS, "3306");
-		sprintf(MYSQL_DB_ACCESS, "smith");
+		sprintf(MYSQL_DB_ACCESS, "cockpit");
 
 		sprintf(MONGO_HOST_ACCESS, "ec2-176-34-6-126.ap-northeast-1.compute.amazonaws.com");
 		MONGO_PORT_ACCESS = 27017;
-		sprintf(MONGO_DB_ACCESS, "smith");
+		sprintf(MONGO_DB_ACCESS, "cockpit");
 
 		sprintf(gHostAddr, "*");
 	}
@@ -2332,11 +2332,11 @@ int main(int argc, char** argv)
 		sprintf(MYSQL_USER_ACCESS, "root");
 		sprintf(MYSQL_PASS_ACCESS, "mypassword");
 		sprintf(MYSQL_PORT_ACCESS, "3306");
-		sprintf(MYSQL_DB_ACCESS, "smith");
+		sprintf(MYSQL_DB_ACCESS, "cockpit");
 
 		sprintf(MONGO_HOST_ACCESS, "localhost");
 		MONGO_PORT_ACCESS = 27017;
-		sprintf(MONGO_DB_ACCESS, "smith");
+		sprintf(MONGO_DB_ACCESS, "cockpit");
 
 		sprintf(gHostAddr, "127.0.0.1");
 	}
@@ -2346,11 +2346,11 @@ int main(int argc, char** argv)
 		sprintf(MYSQL_USER_ACCESS, "root");
 		sprintf(MYSQL_PASS_ACCESS, "mypassword");
 		sprintf(MYSQL_PORT_ACCESS, "3306");
-		sprintf(MYSQL_DB_ACCESS, "smith");
+		sprintf(MYSQL_DB_ACCESS, "cockpit");
 
 		sprintf(MONGO_HOST_ACCESS, "localhost");
 		MONGO_PORT_ACCESS = 27017;
-		sprintf(MONGO_DB_ACCESS, "smith");
+		sprintf(MONGO_DB_ACCESS, "cockpit");
 
 		sprintf(gHostAddr, "*");
 	}
@@ -2360,11 +2360,11 @@ int main(int argc, char** argv)
 		sprintf(MYSQL_USER_ACCESS, "root");
 		sprintf(MYSQL_PASS_ACCESS, "mypassword");
 		sprintf(MYSQL_PORT_ACCESS, "3306");
-		sprintf(MYSQL_DB_ACCESS, "smith");
+		sprintf(MYSQL_DB_ACCESS, "cockpit");
 
 		sprintf(MONGO_HOST_ACCESS, "localhost");
 		MONGO_PORT_ACCESS = 27017;
-		sprintf(MONGO_DB_ACCESS, "www_smith_com");
+		sprintf(MONGO_DB_ACCESS, "cockpit");
 
 		sprintf(gHostAddr, "127.0.0.1");
 	}
@@ -2384,25 +2384,25 @@ int main(int argc, char** argv)
     clients.bind(gConnection);
 
     int nI;
-	// set smithd id
-	for(nI=0; nI<gListOfSmithd; nI++)
+	// set testerbrokerd id
+	for(nI=0; nI<gListOfTesterBrokerd; nI++)
 	{
 		if(strcmp(szListOfSmithd[nI], gConnection) == 0)
 		{
-			gsmithId = nI;
+			gTesterBrokerId = nI;
 			break;
 		}
 	}
 
 
     // We'll use thread pool to generate a lot of thread to support simultaneous access to phantom
-    if((tPoolWorker = threadpoolInit(SMITH_WORKER_THREAD)) == NULL)
+    if((tPoolWorker = threadpoolInit(TESTER_BROKER_WORKER_THREAD)) == NULL)
 	{
 		logError("Failed to create a thread pool struct.\n");
 		exit(1);
 	}
 
-    for(nNumberOfThreadI = 0; nNumberOfThreadI!= SMITH_WORKER_THREAD; nNumberOfThreadI++)
+    for(nNumberOfThreadI = 0; nNumberOfThreadI!= TESTER_BROKER_WORKER_THREAD; nNumberOfThreadI++)
     {
     	int ret = threadpoolAddTask(tPoolWorker, workerRoutine, (void*)&ctx, 0);
 
@@ -2426,7 +2426,7 @@ int main(int argc, char** argv)
 	// Connect work threads to client threads via a queue
 	zmq::proxy(clients, workers, NULL);
 
-    printf("smith daemon shutting down...\n");
+    printf("testerbrokerd shutting down...\n");
     threadpoolFree(tPoolWorker, 0);
 	return 0;
 }
